@@ -8,7 +8,6 @@ package fixedpoint
 
 import cats.Id
 
-import recursion._
 import trees._
 
 package object algebras {
