@@ -11,9 +11,6 @@ import cats._
 import cats.instances.all._
 import cats.syntax.all._
 
-import typeclass.TraverseH
-import typeclass.syntax._
-
 sealed trait TreeF[+A[_], +I]
 object TreeF extends TreeFInstances0
 

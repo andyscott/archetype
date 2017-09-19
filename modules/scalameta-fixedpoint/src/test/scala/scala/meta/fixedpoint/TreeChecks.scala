@@ -7,7 +7,6 @@ package scala.meta
 package fixedpoint
 
 import cats.Id
-import cats.~>
 
 import org.scalacheck._
 import org.scalacheck.Prop._
@@ -25,7 +24,7 @@ object TreeChecks extends Properties("trees") {
     "val x = 1",
     "val x = 1 + 2")
 
-  val roundTripTree: Id ~> Id = recursion.hylo(algebras.lowerTree, algebras.liftTree)
+  val roundTripTree: Id ~> Id = hylo(algebras.lowerTree, algebras.liftTree)
 
   snippets.foreach(snippet =>
     property(s"round trip: $snippet") = roundTrip(snippet))
