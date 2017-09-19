@@ -24,7 +24,7 @@ object BuildPlugin extends AutoPlugin {
     connectInput in run := true,
     cancelable in Global := true,
 
-    testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
+    //testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "3"),
 
     headerLicense := Some(HeaderLicense.Custom(
       """|Copyright (C) 2017 Andy Scott

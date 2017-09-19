@@ -16,23 +16,36 @@ import scala.meta.adjunct.all._
 
 object TreeChecks extends Properties("trees") {
 
-  val dialect = Scala212.copy(allowToplevelTerms = true)
+  private val snippets: List[String] = List(
+    "trait Foo",
+    "class Bar",
+    "object Baz",
+    "package Fleeb",
+    "package object Plumbus"
+  )
 
-  val snippets: List[String] = List(
-    "1 + 1",
-    "1 + 2 + 3",
+  private val termSnippets: List[String] = List(
     "val x = 1",
-    "val x = 1 + 2")
+    "val x = 1 + 2",
+    "var x = 1 + 2 + 3",
+    "def x = 1 + 2 + 3 + 4"
+  )
 
-  val roundTripTree: Id ~> Id = hylo(algebras.lowerTree, algebras.liftTree)
+  private val roundTripTree: Id ~> Id = hylo(algebras.lowerTree, algebras.liftTree)
 
   snippets.foreach(snippet =>
-    property(s"round trip: $snippet") = roundTrip(snippet))
+    property(s"round trip: $snippet") = roundTrip(snippet, Scala212))
 
-  def roundTrip(snippet: String): Prop =
-    dialect(snippet).parse[Source].fold(_ => Prop.falsified, parsed => {
-      val res = roundTripTree(parsed)
-      parsed.structure ?= res.structure
-    })
+  termSnippets.foreach(snippet =>
+    property(s"round trip term: $snippet") = roundTrip(snippet,
+      Scala212.copy(allowToplevelTerms = true)))
+
+  private def roundTrip(snippet: String, dialect: Dialect): Prop =
+    dialect(snippet).parse[Source].fold(
+      e => Prop.falsified :| s"unable to parse original source: $e",
+      parsed => {
+        val res = roundTripTree(parsed)
+        parsed.structure ?= res.structure
+      })
 
 }
