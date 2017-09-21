@@ -297,8 +297,8 @@ final case class SourceF[A[_]](
 private[trees] sealed trait TreeFInstances0 {
 
   implicit val traverseHTreeF: TraverseH[TreeF] = new TraverseH[TreeF] {
-    def traverseH[F[_], A[_], B[_]](f: A ~> (F ∘ B)#λ)(implicit F: Applicative[F]): TreeF[A, ?] ~> (F ∘ TreeF[B, ?])#λ =
-      new (TreeF[A, ?] ~> (F ∘ TreeF[B, ?])#λ) {
+    def traverseH[F[_], A[_], B[_]](f: A ~>: (F ∘ B)#λ)(implicit F: Applicative[F]): TreeF[A, ?] ~>: (F ∘ TreeF[B, ?])#λ =
+      new (TreeF[A, ?] ~>: (F ∘ TreeF[B, ?])#λ) {
         def apply[Z](tree: TreeF[A, Z]): F[TreeF[B, Z]] = tree match {
 
           // Note: Id is used where A should be used because using A
