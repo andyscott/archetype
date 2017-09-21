@@ -31,7 +31,7 @@ object TreeChecks extends Properties("trees") {
     "def x = 1 + 2 + 3 + 4"
   )
 
-  private val roundTripTree: Id ~> Id = hylo(algebras.lowerTree, algebras.liftTree)
+  private val roundTripTree: Id ~>: Id = hylo(algebras.lowerTree, algebras.liftTree)
 
   snippets.foreach(snippet =>
     property(s"round trip: $snippet") = roundTrip(snippet, Scala212))
