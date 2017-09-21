@@ -7,7 +7,8 @@ package scala.meta
 package fixedpoint
 package trees
 
-import cats._
+import cats.Applicative
+import cats.Id
 import cats.instances.all._
 import cats.syntax.all._
 
@@ -20,9 +21,9 @@ sealed trait StatF[A[_], I <: Stat] extends TreeF[A, I]
 sealed trait NameF[A[_], I <: Name] extends RefF[A, I]
 object NameF {
   final case object AnonymousF extends NameF[Nothing, Name.Anonymous]
-  final case class IndeterminateF[A[_]](
+  final case class IndeterminateF(
     value: String
-  ) extends NameF[A, Name.Indeterminate]
+  ) extends NameF[Nothing, Name.Indeterminate]
 }
 
 sealed trait LitF[A[_], I <: Lit] extends TermF[A, I] with PatF[A, I] with TypeF[A, I]
@@ -113,22 +114,68 @@ object DeclF {
 
 sealed trait DefnF[A[_], I <: Defn] extends StatF[A, I]
 object DefnF {
+
   final case class ValF[A[_]](
-    mods: List[A[Mod]],
-    pats: List[A[Pat]],
+    mods   : List[A[Mod]],
+    pats   : List[A[Pat]],
     decltpe: Option[A[Type]],
-    rhs: A[Term]
+    rhs    : A[Term]
   ) extends DefnF[A, Defn.Val]
 
-  // ...
+  final case class VarF[A[_]](
+    mods   : List[A[Mod]],
+    pats   : List[A[Pat]],
+    decltpe: Option[A[Type]],
+    rhs    : Option[A[Term]]
+  ) extends DefnF[A, Defn.Var]
+
   final case class DefF[A[_]](
     mods   : List[A[Mod]],
+    name   : A[Term.Name],
     tparams: List[A[Type.Param]],
     paramss: List[List[A[Term.Param]]],
     decltpe: Option[A[Type]],
     body   : A[Term]
   ) extends DefnF[A, Defn.Def] with MemberF.TermF[A, Defn.Def]
-  // ...
+
+  final case class MacroF[A[_]](
+    mods   : List[A[Mod]],
+    name   : A[Term.Name],
+    tparams: List[A[Type.Param]],
+    paramss: List[List[A[Term.Param]]],
+    decltpe: Option[A[Type]],
+    body   : A[Term]
+  ) extends DefnF[A, Defn.Macro] with MemberF.TermF[A, Defn.Macro]
+
+  final case class TypeF[A[_]](
+    mods   : List[A[Mod]],
+    name   : A[Type.Name],
+    tparams: List[A[Type.Param]],
+    body   : A[Type]
+  ) extends DefnF[A, Defn.Type] with MemberF.TypeF[A, Defn.Type]
+
+  final case class ClassF[A[_]](
+    mods   : List[A[Mod]],
+    name   : A[Type.Name],
+    tparams: List[A[Type.Param]],
+    ctor   : A[Ctor.Primary],
+    templ  : A[Template]
+  ) extends DefnF[A, Defn.Class] with MemberF.TypeF[A, Defn.Class]
+
+  final case class TraitF[A[_]](
+    mods   : List[A[Mod]],
+    name   : A[Type.Name],
+    tparams: List[A[Type.Param]],
+    ctor   : A[Ctor.Primary],
+    templ  : A[Template]
+  ) extends DefnF[A, Defn.Trait] with MemberF.TypeF[A, Defn.Trait]
+
+  final case class ObjectF[A[_]](
+    mods   : List[A[Mod]],
+    name   : A[Term.Name],
+    templ  : A[Template]
+  ) extends DefnF[A, Defn.Object] with MemberF.TermF[A, Defn.Object]
+
 }
 
 final case class PkgF[A[_]](
@@ -254,26 +301,143 @@ private[trees] sealed trait TreeFInstances0 {
       new (TreeF[A, ?] ~> (F ∘ TreeF[B, ?])#λ) {
         def apply[Z](tree: TreeF[A, Z]): F[TreeF[B, Z]] = tree match {
 
-          case t: SourceF[Id] =>
-            t.stats.traverse(f(_)).map(SourceF.apply[B])
+          // Note: Id is used where A should be used because using A
+          // causes the compiler to crash... and these types don't get
+          // checked anyway due to erasure
+
+
+          case t: NameF[B, Z] => F.pure(t)
+
+          case t: LitF[B, Z]  => F.pure(t)
 
           case t: TermF.ApplyInfixF[Id] =>
-            (f(t.lhs), f(t.op), t.targs.traverse(f(_)), t.args.traverse(f(_)))
-              .mapN(TermF.ApplyInfixF.apply[B])
+            (
+              f(t.lhs),
+              f(t.op),
+              t.targs.traverse(f(_)),
+              t.args.traverse(f(_))
+            ) mapN TermF.ApplyInfixF[B]
 
           case t: TermF.NameF => F.pure(t)
-          case t: LitF.IntF => F.pure(t)
+
+
+          case t: TypeF.NameF => F.pure(t)
+
+
+          case t: PatF.VarF[Id] =>
+            f(t.name) map PatF.VarF[B]
 
 
           case t: DefnF.ValF[Id] =>
-            (t.mods.traverse(f(_)), t.pats.traverse(f(_)), t.decltpe.traverse(f(_)), f(t.rhs))
-              .mapN(DefnF.ValF.apply[B])
+            (
+              t.mods.traverse(f(_)),
+              t.pats.traverse(f(_)),
+              t.decltpe.traverse(f(_)),
+              f(t.rhs)
+            ) mapN DefnF.ValF[B]
 
-          case t: PatF.VarF[Id] =>
-            f(t.name).map(PatF.VarF.apply[B])
+          case t: DefnF.VarF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              t.pats.traverse(f(_)),
+              t.decltpe.traverse(f(_)),
+              t.rhs.traverse(f(_))
+            ) mapN DefnF.VarF[B]
+
+          case t: DefnF.DefF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.tparams.traverse(f(_)),
+              t.paramss.traverse(_.traverse(f(_))),
+              t.decltpe.traverse(f(_)),
+              f(t.body)
+            ) mapN DefnF.DefF[B]
+
+          case t: DefnF.MacroF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.tparams.traverse(f(_)),
+              t.paramss.traverse(_.traverse(f(_))),
+              t.decltpe.traverse(f(_)),
+              f(t.body)
+            ) mapN DefnF.MacroF[B]
+
+          case t: DefnF.TypeF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.tparams.traverse(f(_)),
+              f(t.body)
+            ) mapN DefnF.TypeF[B]
+
+          case t: DefnF.ClassF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.tparams.traverse(f(_)),
+              f(t.ctor),
+              f(t.templ)
+            ) mapN DefnF.ClassF[B]
+
+          case t: DefnF.TraitF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.tparams.traverse(f(_)),
+              f(t.ctor),
+              f(t.templ)
+            ) mapN DefnF.TraitF[B]
+
+          case t: DefnF.ObjectF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              f(t.templ)
+            ) mapN DefnF.ObjectF[B]
+
+          case t: PkgF[Id] =>
+            (
+              f(t.ref),
+              t.stats.traverse(f(_))
+            ) mapN PkgF[B]
+
+          case t: PkgF.ObjectF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              f(t.templ)
+            ) mapN PkgF.ObjectF[B]
+
+          case t: CtorF.PrimaryF[Id] =>
+            (
+              t.mods.traverse(f(_)),
+              f(t.name),
+              t.paramss.traverse(_.traverse(f(_)))
+            ) mapN CtorF.PrimaryF[B]
+
+          case t: SelfF[Id] =>
+            (
+              f(t.name),
+              t.decltpe.traverse(f(_))
+            ) mapN SelfF[B]
+
+
+          case t: TemplateF[Id] =>
+            (
+              t.early.traverse(f(_)),
+              t.inits.traverse(f(_)),
+              f(t.self),
+              t.stats.traverse(f(_))
+            ) mapN TemplateF[B]
+
+
+          case t: SourceF[Id] =>
+            t.stats.traverse(f(_)) map SourceF[B]
 
           case _ =>
-            sys.error(s"tree node type ${tree.getClass} is not yet accounted for")
+            sys.error(s"tree node type ${tree.getClass} is not yet traversable")
         }
       }
   }
