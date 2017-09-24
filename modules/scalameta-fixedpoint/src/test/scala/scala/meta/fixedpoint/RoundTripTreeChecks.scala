@@ -14,7 +14,10 @@ import org.scalacheck.Prop._
 import scala.meta.dialects._
 import scala.meta.adjunct.all._
 
-object TreeChecks extends Properties("trees") {
+/** Checks that we can lift and then lower a tree, and get the same
+  * result.
+  */
+object RoundTripTreeChecks extends Properties("RoundTripTreeChecks") {
 
   private val snippets: List[String] = List(
     "trait Foo",
