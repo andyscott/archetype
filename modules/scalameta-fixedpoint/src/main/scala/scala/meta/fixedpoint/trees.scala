@@ -301,10 +301,12 @@ final case class SourceF[A[_]](
   stats: List[A[Stat]]
 ) extends TreeF[A, Source]
 
-
 private[trees] sealed trait TreeFInstances0 {
 
   implicit val traverseHTreeF: TraverseH[TreeF] = new TraverseH[TreeF] {
+
+    import scala.{ unchecked => χ }
+
     def traverseH[F[_], A[_], B[_]](f: A ~>: (F ∘ B)#λ)(implicit F: Applicative[F]): TreeF[A, ?] ~>: (F ∘ TreeF[B, ?])#λ =
       new (TreeF[A, ?] ~>: (F ∘ TreeF[B, ?])#λ) {
         def apply[Z](tree: TreeF[A, Z]): F[TreeF[B, Z]] = tree match {
@@ -314,11 +316,11 @@ private[trees] sealed trait TreeFInstances0 {
           // checked anyway due to erasure
 
 
-          case t: NameF[B, Z] => F.pure(t)
+          case t: NameF[B @χ, Z @χ] => F.pure(t)
 
-          case t: LitF[B, Z]  => F.pure(t)
+          case t: LitF[B @χ, Z @χ]  => F.pure(t)
 
-          case t: TermF.ApplyInfixF[Id] =>
+          case t: TermF.ApplyInfixF[Id @χ] =>
             (
               f(t.lhs),
               f(t.op),
@@ -326,17 +328,11 @@ private[trees] sealed trait TreeFInstances0 {
               t.args.traverse(f(_))
             ) mapN TermF.ApplyInfixF[B]
 
-          case t: TermF.NameF => F.pure(t)
-
-
-          case t: TypeF.NameF => F.pure(t)
-
-
-          case t: PatF.VarF[Id] =>
+          case t: PatF.VarF[Id @χ] =>
             f(t.name) map PatF.VarF[B]
 
 
-          case t: DefnF.ValF[Id] =>
+          case t: DefnF.ValF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               t.pats.traverse(f(_)),
@@ -344,7 +340,7 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.rhs)
             ) mapN DefnF.ValF[B]
 
-          case t: DefnF.VarF[Id] =>
+          case t: DefnF.VarF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               t.pats.traverse(f(_)),
@@ -352,7 +348,7 @@ private[trees] sealed trait TreeFInstances0 {
               t.rhs.traverse(f(_))
             ) mapN DefnF.VarF[B]
 
-          case t: DefnF.DefF[Id] =>
+          case t: DefnF.DefF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
@@ -362,7 +358,7 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.body)
             ) mapN DefnF.DefF[B]
 
-          case t: DefnF.MacroF[Id] =>
+          case t: DefnF.MacroF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
@@ -372,7 +368,7 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.body)
             ) mapN DefnF.MacroF[B]
 
-          case t: DefnF.TypeF[Id] =>
+          case t: DefnF.TypeF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
@@ -380,7 +376,7 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.body)
             ) mapN DefnF.TypeF[B]
 
-          case t: DefnF.ClassF[Id] =>
+          case t: DefnF.ClassF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
@@ -389,7 +385,7 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.templ)
             ) mapN DefnF.ClassF[B]
 
-          case t: DefnF.TraitF[Id] =>
+          case t: DefnF.TraitF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
@@ -398,41 +394,41 @@ private[trees] sealed trait TreeFInstances0 {
               f(t.templ)
             ) mapN DefnF.TraitF[B]
 
-          case t: DefnF.ObjectF[Id] =>
+          case t: DefnF.ObjectF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
               f(t.templ)
             ) mapN DefnF.ObjectF[B]
 
-          case t: PkgF[Id] =>
+          case t: PkgF[Id @χ] =>
             (
               f(t.ref),
               t.stats.traverse(f(_))
             ) mapN PkgF[B]
 
-          case t: PkgF.ObjectF[Id] =>
+          case t: PkgF.ObjectF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
               f(t.templ)
             ) mapN PkgF.ObjectF[B]
 
-          case t: CtorF.PrimaryF[Id] =>
+          case t: CtorF.PrimaryF[Id @χ] =>
             (
               t.mods.traverse(f(_)),
               f(t.name),
               t.paramss.traverse(_.traverse(f(_)))
             ) mapN CtorF.PrimaryF[B]
 
-          case t: SelfF[Id] =>
+          case t: SelfF[Id @χ] =>
             (
               f(t.name),
               t.decltpe.traverse(f(_))
             ) mapN SelfF[B]
 
 
-          case t: TemplateF[Id] =>
+          case t: TemplateF[Id @χ] =>
             (
               t.early.traverse(f(_)),
               t.inits.traverse(f(_)),
@@ -441,7 +437,7 @@ private[trees] sealed trait TreeFInstances0 {
             ) mapN TemplateF[B]
 
 
-          case t: SourceF[Id] =>
+          case t: SourceF[Id @χ] =>
             t.stats.traverse(f(_)) map SourceF[B]
 
           case _ =>
