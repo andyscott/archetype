@@ -19,7 +19,7 @@ sealed trait TreeF[+A[_], +I]
 object TreeF extends TreeFInstances0 {
   /** This lets you call `.fix` on the leaf node trees with `A[_] = Nothing` */
   implicit final class FixTreeFOps[I](val tree: TreeF[HFix[TreeF, ?], I]) extends AnyVal {
-    def fix[II >: I]: HFix[TreeF, II] = HFix[TreeF, II](tree)
+    def fix[II >: I]: HFix[TreeF, II] = HFix.hfix[TreeF, II](tree)
   }
 }
 
