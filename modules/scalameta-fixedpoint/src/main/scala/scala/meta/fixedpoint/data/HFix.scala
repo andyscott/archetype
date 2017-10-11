@@ -7,6 +7,7 @@ package scala.meta
 package fixedpoint
 package data
 
+/*
 final case class HFix[F[_[_], _], A](val unfix: F[HFix[F, ?], A]) extends AnyVal
 
 object HFix {
@@ -15,4 +16,23 @@ object HFix {
   final class Fixer[F[_[_], _]] private[HFix] {
     def apply[I](unfix: F[HFix[F, ?], I]): HFix[F, I] = HFix[F, I](unfix)
   }
+}
+*/
+
+
+trait HFixModule {
+  type HFix[F[_[_], _], A]
+
+  def   hfix[F[_[_], _], A](f: F[data.HFix[F, ?], A]): HFix[F, A]
+  def hunfix[F[_[_], _], A](f: HFix[F, A]): F[data.HFix[F, ?], A]
+
+  final def apply[F[_[_], _], A](f: F[data.HFix[F, ?], A]): HFix[F, A] =
+    hfix(f)
+}
+
+private[data] object HFixImpl extends HFixModule {
+  type HFix[F[_[_], _], A] = F[data.HFix[F, ?], A]
+
+  def   hfix[F[_[_], _], A](f: F[data.HFix[F, ?], A]): HFix[F, A] = f
+  def hunfix[F[_[_], _], A](f: HFix[F, A]): F[data.HFix[F, ?], A] = f
 }

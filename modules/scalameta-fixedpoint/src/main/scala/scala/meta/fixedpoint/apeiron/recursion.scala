@@ -47,7 +47,7 @@ class RecursionBound[W <: World] extends BoundTypeclasses[W] with WorldBound[W] 
         type Base[X[_], Y] = F[X, Y]
 
         val embed: Algebra[F, HFix[F, ?]] = new Algebra[F, HFix[F, ?]] {
-          def apply[A](fa: F[HFix[F, ?], A]): HFix[F, A] = HFix[F, A](fa)
+          def apply[A](fa: F[HFix[F, ?], A]): HFix[F, A] = HFix.hfix[F, A](fa)
         }
       }
   }
